@@ -1,16 +1,21 @@
-
 import streamlit as st
 from groq import Groq
+from pypdf import PdfReader
 
 
 st.set_page_config(
-    page_title="VeriAI",
-    page_icon="🧠"
+    page_title="AI Truth Lens",
+    page_icon="🧠",
+    layout="centered"
 )
 
-st.title("🧠 VeriAI - AI Information Checker")
+
+st.title("🧠 AI Truth Lens")
+
+st.subheader("See beyond the information you consume.")
+
 st.write(
-    "Paste any claim, news, or information and AI will analyze its reliability."
+    "An AI-powered credibility analyzer that checks claims, detects bias and evaluates reliability."
 )
 
 
@@ -20,48 +25,88 @@ api_key = st.sidebar.text_input(
 )
 
 
-user_text = st.text_area(
-    "Enter information:",
-    placeholder="Example: Drinking lemon water cures every disease...",
-    height=200
-)
+
+def read_pdf(file):
+
+    reader = PdfReader(file)
+
+    text = ""
+
+    for page in reader.pages:
+        text += page.extract_text()
+
+    return text
 
 
-def analyze_information(text):
 
-    client = Groq(api_key=api_key)
+def analyze(text):
+
+    client = Groq(
+        api_key=api_key
+    )
+
 
     prompt = f"""
 
-You are an AI information analyst.
+You are an AI Truth Verification Analyst.
 
 Analyze this information:
 
 {text}
 
 
-Give response in this format:
+Give ONLY a concise structured report:
 
-🔍 Claim Summary:
-Explain the claim.
+CLAIM:
+Extract the main claim.
 
-📊 Credibility Score:
-Give score from 0-100 and reason.
 
-⚠️ Possible Problems:
-Find misleading or suspicious parts.
+VERDICT:
+Choose one:
+✅ True
+⚠️ Partially True
+❌ False
+❓ Unverified
 
-🎭 Bias Detection:
-Identify emotional, marketing, or hidden bias.
 
-🧠 Missing Context:
-Explain missing important details.
+CREDIBILITY SCORE:
+Give score out of 10.
 
-⚖️ Balanced Explanation:
-Give a neutral explanation.
 
-Final Verdict:
-Should people trust this information or verify more?
+CLAIM BREAKDOWN:
+Break the information into important claims.
+
+
+EVIDENCE FOUND:
+Give possible supporting or contradicting evidence.
+
+
+EVIDENCE STRENGTH:
+Rate:
+Strong / Medium / Weak
+
+
+BIAS DETECTION:
+Detect:
+- Emotional language
+- Manipulation
+- Exaggeration
+
+
+RELIABLE SOURCES:
+Suggest where this information should be verified.
+
+Examples:
+- Scientific papers
+- Government websites
+- Trusted organizations
+
+
+WHY:
+Give a short final explanation.
+
+
+Keep it clear and professional.
 
 """
 
@@ -72,12 +117,12 @@ Should people trust this information or verify more?
 
         messages=[
             {
-                "role": "user",
-                "content": prompt
+                "role":"user",
+                "content":prompt
             }
         ],
 
-        temperature=0.3
+        temperature=0.2
     )
 
 
@@ -85,26 +130,82 @@ Should people trust this information or verify more?
 
 
 
-if st.button("🔎 Analyze"):
+method = st.radio(
+
+    "Choose input:",
+
+    [
+        "Text",
+        "Upload PDF"
+    ]
+
+)
+
+
+content = ""
+
+
+if method == "Text":
+
+    content = st.text_area(
+
+        "Enter information:",
+
+        height=220,
+
+        placeholder="Example: The Great Wall of China is visible from Moon..."
+    )
+
+
+else:
+
+    file = st.file_uploader(
+
+        "Upload PDF",
+
+        type=["pdf"]
+
+    )
+
+
+    if file:
+
+        content = read_pdf(file)
+
+
+
+if st.button("🔍 Analyze Information"):
+
 
     if not api_key:
 
-        st.error("Please enter Groq API key")
+        st.error(
+            "Please enter Groq API Key"
+        )
 
 
-    elif not user_text:
+    elif not content:
 
-        st.warning("Please enter information")
+        st.warning(
+            "Enter text or upload PDF"
+        )
 
 
     else:
 
-        with st.spinner("AI is analyzing..."):
 
-            result = analyze_information(user_text)
+        with st.spinner(
+            "AI Investigator analyzing..."
+        ):
+
+            result = analyze(content)
 
 
-        st.success("Analysis Completed")
+
+        st.success(
+            "Analysis Completed"
+        )
+
 
         st.markdown(result)
 
@@ -112,5 +213,6 @@ if st.button("🔎 Analyze"):
 
 st.divider()
 
-st.caption("Built with Python + Streamlit + Groq AI")
-
+st.caption(
+    "AI Truth Lens | Python + Streamlit + Groq AI"
+)
